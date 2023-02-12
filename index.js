@@ -4,7 +4,8 @@ const app = express();
 const dotenv = require('dotenv').config();
 const mongoose = require('mongoose')
 
-const VALIDATE_URL = /((http|https):\/\/)(www.|localhost:)(([0-9]{1,6})|([a-z]{1,4}\.[a-z]{2,6}))/
+// const VALIDATE_URL = /((http|https):\/\/)(www.|localhost:)(([0-9]{1,6})|([a-z]{1,4}\.[a-z]{2,6}))/
+const VALIDATE_URL = /((http|https):\/\/)((www.([0-9]{1,6}))|localhost:|([a-z]{3,110}))/
 
 // Basic Configuration
 const port = process.env.PORT || 3000;
@@ -19,7 +20,6 @@ mongoose.set('strictQuery', true);
 mongoose.connect(process.env.MONGO_URI, { useNewUrlParser: true, useUnifiedTopology: true});
 
 
-// const Url = require('./dataBase').Url;
 const {Url} = require('./dataBase');
 
 
@@ -38,40 +38,15 @@ app.get('/api/shorturl/:data?', function (req, res) {
     const shorturl = req.params.data;
     console.log('------------------------------------------------- GET:', shorturl)
 
-    let response = {};
-    
-    // Url.findOne({shorturl:shorturl})
-    // .then(function(err, found){
-    //     if(err) {
-    //         console.log('Mongo failed on findOne:', shorturl, ' err:')
-    //         response = { error: 'invalid shorturl' };
-    //         return res.json(response);
-    //     }
-    //     // Validate type:url here
-    //     if(!found || found === undefined){
-    //         response = { error: 'Url not found' };
-    //         return res.json(response);
-    //         console.log(response)
-    //     }
-    //     if(found){
-    //         console.log('GET: found shorturl:', found.shorturl, ' url:', found.originalurl)
-    //         return res.redirect(found.originalurl)
-    //     }
-    // })
     Url.findOne({shorturl:shorturl}, function(err, found){
         if(err) {
-            console.log('Mongo failed on findOne:', shorturl, ' err:')
-            response = { error: 'invalid shorturl' };
-            return res.json(response);
+            return res.json({ error: 'invalid shorturl' });
         }
         // Validate type:url here
         if(!found || found === undefined){
-            response = { error: 'Url not found' };
-            return res.json(response);
-            console.log(response)
+            return res.json({ error: 'Url not found' });
         }
         if(found){
-            console.log('GET: found shorturl:', found.shorturl, ' url:', found.originalurl)
             return res.redirect(found.originalurl)
         }
     })
@@ -154,13 +129,11 @@ app.post('/api/shorturl/:data?', express.urlencoded({ extended: true }), functio
                 if(!found && found !== undefined){
                     ascVal = foundMax.shorturl+1; 
                     // Create new database entry. The shortened number is equal to 1 at this point
-                    console.log('++++++ Creating database entry:', urlPart, ' shorturl:', ascVal)
                     const newUrl = new Url({ originalurl: url, shorturl: ascVal });
                     newUrl.save();
                     return res.json({ original_url : newUrl.originalurl, short_url : newUrl.shorturl})
                 }
                 else {
-                    console.log('oooooo Database entry allready exist:', found.originalurl, ' shorturl:', found.shorturl)
                     res.redirect('/')
                 }
             })
@@ -168,7 +141,6 @@ app.post('/api/shorturl/:data?', express.urlencoded({ extended: true }), functio
 
         }
         else{ // Case it's the first entry in the database
-            console.log('Creating First database entry:', url)
             const newUrl = new Url({ originalurl: urlPart, shorturl: ascVal });
             newUrl.save();
             return res.json({ original_url : newUrl.originalurl, short_url : newUrl.shorturl})
@@ -177,6 +149,4 @@ app.post('/api/shorturl/:data?', express.urlencoded({ extended: true }), functio
 });
 
 
-app.listen(port, function () {
-    console.log(`Listening on port ${port}`);
-});
+app.listen(port, function () { console.log(`Listening on port ${port}`); });
